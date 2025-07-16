@@ -1,3 +1,6 @@
 [submodule "thirdparty/cmocka"]
 	path = thirdparty/cmocka
 	url = https://gitlab.com/cmocka/cmocka.git
+[submodule "thirdparty/ahoi-serial-lib"]
+	path = thirdparty/ahoi-serial-lib
+	url = https://github.com/dmochkas/ahoi-serial-lib.git
