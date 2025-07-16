@@ -29,7 +29,7 @@ endif ()
 if (ENABLE_TESTS)
     enable_testing()
     option(WITH_EXAMPLES "" OFF)
-#    add_git_submodule(DIRECTORY "thirdparty/cmocka"
-#            PROPAGATE ON)
+    add_git_submodule(DIRECTORY "thirdparty/cmocka"
+            PROPAGATE ON)
 #    add_subdirectory(tests)
 endif ()
