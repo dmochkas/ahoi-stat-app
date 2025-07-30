@@ -16,13 +16,13 @@
 
 app_mode_t mode = RECEIVER;
 
-int g_fd = -1;
+int g_ahoi_fd = -1;
 
 void handle_sigint(int sig) {
     zlog_info(ok_cat, "Caught signal %d, exporting statistics and exiting.", sig);
     export_statistics();
-    if (g_fd != -1) {
-        close(g_fd);
+    if (g_ahoi_fd != -1) {
+        close(g_ahoi_fd);
     }
     zlog_fini();
     exit(EXIT_SUCCESS);
@@ -55,8 +55,8 @@ int main(int argc, char *argv[]) {
 
     signal(SIGINT, handle_sigint);
 
-    g_fd = open_serial_port(port, baudrate);
-    if (g_fd == -1) {
+    g_ahoi_fd = open_serial_port(port, baudrate);
+    if (g_ahoi_fd == -1) {
         zlog_error(error_cat, "Error opening serial port");
         zlog_fini();
         return EXIT_FAILURE;
@@ -67,12 +67,12 @@ int main(int argc, char *argv[]) {
     uint32_t i = 0;
     while (1) {
         zlog_info(ok_cat, "Receiving packet %ud", i + 1);
-        receive_ahoi_packet(g_fd, handle_ahoi_packet, NULL, -1);
+        receive_ahoi_packet(g_ahoi_fd, handle_ahoi_packet, NULL, -1);
 
         i++;
     }
 
-    close(g_fd);
+    close(g_ahoi_fd);
     zlog_fini();
     return EXIT_SUCCESS;
 }

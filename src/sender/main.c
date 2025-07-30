@@ -1,9 +1,7 @@
-#include <stat_service.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <signal.h>
 
 #include <zlog.h>
 #include <netinet/in.h>
@@ -15,6 +13,7 @@
 #include "common.h"
 #include "cli_helper.h"
 #include "utils.h"
+#include "stat_service.h"
 #include "sender_stat_service.h"
 
 #define ACK_TIMEOUT_MS 2000
@@ -23,17 +22,6 @@
 app_mode_t mode = SENDER;
 
 static uint8_t payload_buf[MAX_SECURE_PAYLOAD_SIZE];
-int g_fd = -1;
-
-void handle_sigint(int sig) {
-    zlog_info(ok_cat, "Caught signal %d, exporting statistics and exiting.", sig);
-    export_statistics();
-    if (g_fd != -1) {
-        close(g_fd);
-    }
-    zlog_fini();
-    exit(EXIT_SUCCESS);
-}
 
 typedef enum {
     PACKET_GEN_OK,
@@ -72,7 +60,7 @@ void handle_rack(const ahoi_packet_t *packet) {
     const double distance_m = half_delay_us * 0.0015;
 
     zlog_info(ok_cat, "Received ranging ack. Distance: %.2f m", distance_m);
-    ack_received();
+    ack_received(distance_m);
 }
 
 int main(int argc, char argv[]) {
@@ -98,10 +86,8 @@ int main(int argc, char argv[]) {
 
     store_key(key_arg);
 
-    signal(SIGINT, handle_sigint);
-
-    g_fd = open_serial_port(port, baudrate);
-    if (g_fd == -1) {
+    const int fd = open_serial_port(port, baudrate);
+    if (fd == -1) {
         zlog_error(error_cat, "Error opening serial port %s", port);
         zlog_fini();
         return EXIT_FAILURE;
@@ -117,12 +103,12 @@ int main(int argc, char argv[]) {
 
         if (generate_dummy_packet(size, &packet) != PACKET_GEN_OK) {
             zlog_error(error_cat, "Error generating packet %d", i);
-            close(g_fd);
+            close(fd);
             zlog_fini();
             return EXIT_FAILURE;
         }
 
-        if (send_ahoi_packet(g_fd, &packet) != PACKET_SEND_OK) {
+        if (send_ahoi_packet(fd, &packet) != PACKET_SEND_OK) {
             zlog_error(error_cat, "Error sending packet %d", i);
             msg_failed();
             continue;
@@ -131,7 +117,7 @@ int main(int argc, char argv[]) {
         zlog_info(ok_cat, "Packet %d sent", i);
         msg_sent(size + HEADER_SIZE);
 
-        if (receive_ahoi_packet(g_fd, NULL, handle_rack, ACK_TIMEOUT_MS) == PACKET_RCV_KO) {
+        if (receive_ahoi_packet(fd, NULL, handle_rack, ACK_TIMEOUT_MS) == PACKET_RCV_KO) {
             zlog_error(error_cat, "Unexpected receive error");
             continue;
         }
@@ -139,7 +125,7 @@ int main(int argc, char argv[]) {
 
     export_statistics();
 
-    close(g_fd);
+    close(fd);
     zlog_fini();
     return EXIT_SUCCESS;
 }

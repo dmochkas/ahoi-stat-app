@@ -19,5 +19,5 @@ void export_statistics() {
     /* CSV
         |Timestamp|N Received|Msg Size|
     */
-    __export_stat(msg_received, (uint32_t) (total_msg_size / msg_received_n));
+    __export_stat(msg_received_n, (uint32_t) (total_msg_size / msg_received_n));
 }
