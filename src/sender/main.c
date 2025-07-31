@@ -29,9 +29,11 @@ typedef enum {
 } packet_gen_status;
 
 packet_gen_status generate_dummy_packet(const size_t pl_size, ahoi_packet_t *packet) {
-    packet->dst = 0xFF;
-    packet->type = 0x00;
-    packet->flags = AR_FLAG;
+    // packet->src = 88;
+    packet->src = 0x58;
+    packet->dst = 0x56;
+    packet->type = 0x01;
+    packet->flags = 0x00;
     packet->pl_size = pl_size;
 
     if (generate_random_bytes(packet->payload, pl_size) != 0) {
@@ -119,6 +121,15 @@ int main(int argc, char argv[]) {
 
         if (receive_ahoi_packet(fd, NULL, handle_rack, ACK_TIMEOUT_MS) == PACKET_RCV_KO) {
             zlog_error(error_cat, "Unexpected receive error");
+            // continue;
+        }
+
+        const packet_rcv_status res = receive_ahoi_packet(fd, NULL, handle_rack, 5000);
+        if (res == PACKET_RCV_KO) {
+            zlog_error(error_cat, "Unexpected receive error");
+            continue;
+        } else if (res == PACKET_RCV_TIMEOUT) {
+            zlog_error(error_cat, "Ack was not received");
             continue;
         }
     }
