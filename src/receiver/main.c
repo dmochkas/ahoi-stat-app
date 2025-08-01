@@ -34,7 +34,7 @@ void handle_ahoi_packet(const ahoi_packet_t* p) {
 }
 
 void setup_ahoi() {
-    set_ahoi_id(g_ahoi_fd, 0x56);
+    set_ahoi_id(g_ahoi_fd, RECEIVER_MODEM_ID);
     set_ahoi_sniff_mode(g_ahoi_fd, 0);
 }
 

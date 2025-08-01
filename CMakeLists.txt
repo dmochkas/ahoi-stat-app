@@ -7,6 +7,8 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 
 include(config.cmake)
+include(sender-config.cmake)
+include(receiver-config.cmake)
 include(GitAddSubmodule)
 include(FetchContent)
 
@@ -47,8 +49,6 @@ if (WITH_SENDER)
     add_subdirectory(src/sender)
     add_executable(${SENDER_APP_NAME} $<TARGET_OBJECTS:${SENDER_LIB_NAME}> $<TARGET_OBJECTS:${COMMONS_LIB_NAME}>)
     target_link_libraries(${SENDER_APP_NAME} PUBLIC ${AHOI_LIB_NAME})
-
-    target_compile_definitions(${SENDER_APP_NAME} PUBLIC LOG_CONFIG_FILE="./config/log.conf")
 endif ()
 
 
@@ -56,8 +56,6 @@ if (WITH_RECEIVER)
     add_subdirectory(src/receiver)
     add_executable(${RECEIVER_APP_NAME} $<TARGET_OBJECTS:${RECEIVER_LIB_NAME}> $<TARGET_OBJECTS:${COMMONS_LIB_NAME}>)
     target_link_libraries(${RECEIVER_APP_NAME} PUBLIC ${AHOI_LIB_NAME})
-
-    target_compile_definitions(${RECEIVER_APP_NAME} PUBLIC LOG_CONFIG_FILE="./config/log.conf")
 endif ()
 
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.13.0")

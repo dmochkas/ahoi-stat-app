@@ -36,10 +36,11 @@ typedef enum {
 
 packet_gen_status generate_dummy_packet(const size_t pl_size, ahoi_packet_t *packet) {
     // packet->src = 88;
-    packet->src = 0x58;
-    packet->dst = 0x56;
+    packet->src = SENDER_MODEM_ID;
+    packet->dst = 0xFF;
     packet->type = 0x01;
-    packet->flags = 0x00;
+    // AR_FLAG doesn't work
+    packet->flags = A_FLAG;
     packet->pl_size = pl_size;
 
     if (generate_random_bytes(packet->payload, pl_size) != 0) {
@@ -71,11 +72,30 @@ void handle_rack(const ahoi_packet_t *packet) {
     ack_received(distance_m);
 }
 
+#ifdef WITH_TIMING
+// Used to calculate the distance because R-Ack doesn't work. Less precise ofc
+void process_timing(const timing_t* t) {
+    const uint64_t begin = (uint64_t) t->begin.tv_sec * 1000000 + t->begin.tv_usec;
+    const uint64_t end = (uint64_t) t->end.tv_sec * 1000000 + t->end.tv_usec;
+
+    if (end < begin) {
+        zlog_warn(error_cat, "Malformed timing");
+    }
+
+    // speed of sound in water = 1500 m/s = 0.0015 m/us
+    const double distance_m = (begin - end) * 0.0015 / 2;
+
+    zlog_info(ok_cat, "Estimated distance: %.2f m", distance_m);
+    ack_received(distance_m);
+}
+#endif
+
 void setup_ahoi() {
-    set_ahoi_id(g_ahoi_fd, 0x58);
+    set_ahoi_id(g_ahoi_fd, SENDER_MODEM_ID);
     set_ahoi_sniff_mode(g_ahoi_fd, false);
 }
 
+// TODO: Handle footer, logging for ahoi-serial-lib
 int main(int argc, char argv[]) {
     if (logger_init() != LOGGER_INIT_OK) {
         fprintf(stderr, "Logger initialization failed\n");
@@ -98,6 +118,10 @@ int main(int argc, char argv[]) {
     zlog_info(ok_cat, "Successfully parsed cli args");
 
     store_key(key_arg);
+
+#ifdef WITH_TIMING
+    set_timing_cb(process_timing);
+#endif
 
     g_ahoi_fd = open_serial_port(port, baudrate);
     if (g_ahoi_fd == -1) {
@@ -136,12 +160,6 @@ int main(int argc, char argv[]) {
 
         zlog_info(ok_cat, "Packet %d sent", i);
         msg_sent(size + HEADER_SIZE);
-
-        // // Why control packet 255 ??? It's serial ack
-        // if (receive_ahoi_packet(fd, NULL, handle_rack, ACK_TIMEOUT_MS) == PACKET_RCV_KO) {
-        //     zlog_error(error_cat, "Unexpected receive error");
-        //     // continue;
-        // }
 
         // Check the sniff mode, rack is not sent when sniff mode
         const packet_rcv_status res = receive_ahoi_packet_sync(g_ahoi_fd, &recv_packet, RECV_ACK_TIMEOUT_MS);
