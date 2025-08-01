@@ -6,8 +6,7 @@
 
 #include <zlog.h>
 
-#include "ahoi_serial/common_defs.h"
-#include "ahoi_serial/receiver.h"
+#include "ahoilib.h"
 
 #include "common.h"
 #include "cli_helper.h"
@@ -15,6 +14,8 @@
 #include "receiver_stat_service.h"
 
 app_mode_t mode = RECEIVER;
+
+uint8_t recv_payload_buf[MAX_PAYLOAD_SIZE];
 
 int g_ahoi_fd = -1;
 
@@ -64,10 +65,16 @@ int main(int argc, char *argv[]) {
 
     zlog_info(ok_cat, "Serial port %s open ok", port);
 
+    static ahoi_packet_t recv_packet = {
+        .payload = recv_payload_buf
+    };
+
     uint32_t i = 0;
     while (1) {
         zlog_info(ok_cat, "Receiving packet %ud", i + 1);
-        receive_ahoi_packet(g_ahoi_fd, handle_ahoi_packet, NULL, -1);
+        receive_ahoi_packet_sync(g_ahoi_fd, &recv_packet, -1);
+
+        handle_ahoi_packet(&recv_packet);
 
         i++;
     }
