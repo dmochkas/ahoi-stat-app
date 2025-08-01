@@ -33,6 +33,11 @@ void handle_ahoi_packet(const ahoi_packet_t* p) {
     msg_received(p->pl_size + HEADER_SIZE);
 }
 
+void setup_ahoi() {
+    set_ahoi_id(g_ahoi_fd, 0x56);
+    set_ahoi_sniff_mode(g_ahoi_fd, 0);
+}
+
 int main(int argc, char *argv[]) {
     if (logger_init() != LOGGER_INIT_OK) {
         fprintf(stderr, "Logger initialization failed\n");
@@ -64,6 +69,8 @@ int main(int argc, char *argv[]) {
     }
 
     zlog_info(ok_cat, "Serial port %s open ok", port);
+
+    setup_ahoi();
 
     static ahoi_packet_t recv_packet = {
         .payload = recv_payload_buf

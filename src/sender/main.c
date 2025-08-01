@@ -72,7 +72,7 @@ void handle_rack(const ahoi_packet_t *packet) {
 }
 
 void setup_ahoi() {
-    set_ahoi_id(g_ahoi_fd, 0x56);
+    set_ahoi_id(g_ahoi_fd, 0x58);
     set_ahoi_sniff_mode(g_ahoi_fd, false);
 }
 
