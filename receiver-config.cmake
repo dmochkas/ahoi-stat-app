@@ -1,0 +1,1 @@
+set(RECEIVER_MODEM_ID "0x58" CACHE STRING "ID of the receiver's modem")
