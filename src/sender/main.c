@@ -37,10 +37,10 @@ typedef enum {
 packet_gen_status generate_dummy_packet(const size_t pl_size, ahoi_packet_t *packet) {
     // packet->src = 88;
     packet->src = SENDER_MODEM_ID;
-    packet->dst = 0xFF;
+    packet->dst = 0x58;
     packet->type = 0x01;
     // AR_FLAG doesn't work
-    packet->flags = A_FLAG;
+    packet->flags = 0x01;
     packet->pl_size = pl_size;
 
     if (generate_random_bytes(packet->payload, pl_size) != 0) {
@@ -51,7 +51,7 @@ packet_gen_status generate_dummy_packet(const size_t pl_size, ahoi_packet_t *pac
     return PACKET_GEN_OK;
 }
 
-void handle_rack(const ahoi_packet_t *packet) {
+void handle_rack(const ahoi_packet_t *packet, const ahoi_footer_t* footer) {
     // Calculate distance if ranging ACK
     if (packet->pl_size == 0) {
         zlog_warn(error_cat, "Received non-ranging ack");
@@ -69,33 +69,34 @@ void handle_rack(const ahoi_packet_t *packet) {
     const double distance_m = half_delay_us * 0.0015;
 
     zlog_info(ok_cat, "Received ranging ack. Distance: %.2f m", distance_m);
-    ack_received(distance_m);
+    ack_received(distance_m, packet, footer);
 }
 
-#ifdef WITH_TIMING
-// Used to calculate the distance because R-Ack doesn't work. Less precise ofc
-void process_timing(const timing_t* t) {
-    const uint64_t begin = (uint64_t) t->begin.tv_sec * 1000000 + t->begin.tv_usec;
-    const uint64_t end = (uint64_t) t->end.tv_sec * 1000000 + t->end.tv_usec;
-
-    if (end < begin) {
-        zlog_warn(error_cat, "Malformed timing");
-    }
-
-    // speed of sound in water = 1500 m/s = 0.0015 m/us
-    const double distance_m = (begin - end) * 0.0015 / 2;
-
-    zlog_info(ok_cat, "Estimated distance: %.2f m", distance_m);
-    ack_received(distance_m);
-}
-#endif
+// #ifdef WITH_TIMING
+// // Used to calculate the distance because R-Ack doesn't work. Less precise ofc
+// void process_timing(const timing_t* t) {
+//     const uint64_t begin = (uint64_t) t->begin.tv_sec * 1000000 + t->begin.tv_usec;
+//     const uint64_t end = (uint64_t) t->end.tv_sec * 1000000 + t->end.tv_usec;
+//
+//     if (end < begin) {
+//         zlog_warn(error_cat, "Malformed timing");
+//     }
+//
+//     // speed of sound in water = 1500 m/s = 0.0015 m/us
+//     const double est_distance_m = (end - begin) * 0.0015 / 2 - 1300;
+//     const double distance_m = est_distance_m > 0 ? est_distance_m : 0;
+//
+//     zlog_info(ok_cat, "Estimated distance: %.2f m", distance_m);
+//     ack_received(distance_m, );
+// }
+// #endif
 
 void setup_ahoi() {
     set_ahoi_id(g_ahoi_fd, SENDER_MODEM_ID);
     set_ahoi_sniff_mode(g_ahoi_fd, false);
 }
 
-// TODO: Handle footer, logging for ahoi-serial-lib
+// TODO: Handle footer, logging for ahoi-serial-lib, change for R not AR flags
 int main(int argc, char argv[]) {
     if (logger_init() != LOGGER_INIT_OK) {
         fprintf(stderr, "Logger initialization failed\n");
@@ -119,9 +120,9 @@ int main(int argc, char argv[]) {
 
     store_key(key_arg);
 
-#ifdef WITH_TIMING
-    set_timing_cb(process_timing);
-#endif
+// #ifdef WITH_TIMING
+//     set_timing_cb(process_timing);
+// #endif
 
     g_ahoi_fd = open_serial_port(port, baudrate);
     if (g_ahoi_fd == -1) {
@@ -142,6 +143,8 @@ int main(int argc, char argv[]) {
         .payload = recv_payload_buf
     };
 
+    static ahoi_footer_t recv_footer = {0};
+
     for (int i = 0; i < n; ++i) {
         usleep(SEND_INTERVAL_MS * 1000); // Sleep for 100 ms
 
@@ -159,10 +162,10 @@ int main(int argc, char argv[]) {
         }
 
         zlog_info(ok_cat, "Packet %d sent", i);
-        msg_sent(size + HEADER_SIZE);
+        msg_sent(&send_packet);
 
         // Check the sniff mode, rack is not sent when sniff mode
-        const packet_rcv_status res = receive_ahoi_packet_sync(g_ahoi_fd, &recv_packet, RECV_ACK_TIMEOUT_MS);
+        const packet_rcv_status res = receive_ahoi_packet_sync(g_ahoi_fd, &recv_packet, &recv_footer, RECV_ACK_TIMEOUT_MS);
         if (res == PACKET_RCV_KO) {
             zlog_error(error_cat, "Unexpected receive error");
             continue;
@@ -173,7 +176,7 @@ int main(int argc, char argv[]) {
             continue;
         }
 
-        handle_rack(&recv_packet);
+        handle_rack(&recv_packet, &recv_footer);
     }
 
     export_statistics();

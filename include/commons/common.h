@@ -14,6 +14,8 @@ typedef enum {
 } logger_status;
 
 extern zlog_category_t* stat_cat;
+extern zlog_category_t* tx_cat;
+extern zlog_category_t* rx_cat;
 extern zlog_category_t* ok_cat;
 extern zlog_category_t* error_cat;
 

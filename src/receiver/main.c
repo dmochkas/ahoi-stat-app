@@ -29,8 +29,8 @@ void handle_sigint(int sig) {
     exit(EXIT_SUCCESS);
 }
 
-void handle_ahoi_packet(const ahoi_packet_t* p) {
-    msg_received(p->pl_size + HEADER_SIZE);
+void handle_ahoi_packet(const ahoi_packet_t* p, const ahoi_footer_t* f) {
+    msg_received(p, f);
 }
 
 void setup_ahoi() {
@@ -76,12 +76,14 @@ int main(int argc, char *argv[]) {
         .payload = recv_payload_buf
     };
 
+    static ahoi_footer_t recv_footer = {0};
+
     uint32_t i = 0;
     while (1) {
         zlog_info(ok_cat, "Receiving packet %ud", i + 1);
-        receive_ahoi_packet_sync(g_ahoi_fd, &recv_packet, -1);
+        receive_ahoi_packet_sync(g_ahoi_fd, &recv_packet, &recv_footer, -1);
 
-        handle_ahoi_packet(&recv_packet);
+        handle_ahoi_packet(&recv_packet, &recv_footer);
 
         i++;
     }
