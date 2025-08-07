@@ -25,14 +25,20 @@ void print_bytes_hex(int fd, const uint8_t *buf, size_t len) {
 }
 
 int bytes_to_hexstr(char *out, size_t out_size, const uint8_t *buf, size_t len) {
-    if (!out || out_size == 0 || !buf || len == 0) return 0;
+    if (!out || out_size == 0 || !buf || len == 0) {
+        if (out && out_size > 0) out[0] = '\0';
+        return 0;
+    }
     size_t pos = 0;
-    for (size_t i = 0; i < len && pos + 3 < out_size; ++i) {
-        int n = snprintf(out + pos, out_size - pos, "%02X ", buf[i]);
-        if (n < 0 || (size_t)n >= out_size - pos) break;
+    for (size_t i = 0; i < len; ++i) {
+        // Each byte needs 3 chars ("XX ") except the last one (2 chars "XX")
+        size_t space_needed = (i == len - 1) ? 2 : 3;
+        if (pos + space_needed >= out_size) break;
+
+        int n = snprintf(out + pos, out_size - pos, (i == len - 1) ? "%02X" : "%02X ", buf[i]);
+        if (n < 0) break; // snprintf error
         pos += n;
     }
-    if (pos > 0 && pos < out_size) out[pos - 1] = '\0'; // Remove trailing space
-    else if (pos < out_size) out[pos] = '\0';
+    out[pos] = '\0';
     return (int)pos;
 }
