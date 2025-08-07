@@ -4,7 +4,7 @@
 #include <zlog.h>
 
 typedef enum {
-    SENDER, RECEIVER
+    SENDER, RECEIVER, TEST
 } app_mode_t;
 
 extern app_mode_t mode;
