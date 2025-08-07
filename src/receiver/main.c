@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
+#include <termios.h>
 
 #include <zlog.h>
 
@@ -34,6 +35,7 @@ void handle_ahoi_packet(const ahoi_packet_t* p, const ahoi_footer_t* f) {
 }
 
 void setup_ahoi() {
+    tcflush(g_ahoi_fd, TCIFLUSH);
     set_ahoi_id(g_ahoi_fd, RECEIVER_MODEM_ID);
     set_ahoi_sniff_mode(g_ahoi_fd, 0);
 }
