@@ -15,7 +15,7 @@ void msg_received(const ahoi_packet_t* const p, const ahoi_footer_t* const foote
     const size_t msg_size = p->pl_size + HEADER_SIZE;
     msg_received_n++;
 
-    __export_rx("ACK", p->src, p->dst, 0, msg_size, footer->power, footer->rssi, footer->biterrors, footer->agcMean);
+    __export_rx("DATA", p->src, p->dst, 0.0, msg_size, footer->power, footer->rssi, footer->biterrors, footer->agcMean);
 }
 
 void export_statistics() {
