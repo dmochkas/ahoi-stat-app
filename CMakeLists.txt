@@ -71,5 +71,5 @@ if (ENABLE_TESTS)
     add_git_submodule(DIRECTORY "thirdparty/cmocka"
             PROPAGATE ON
             CMP_TARGET cmocka)
-#    add_subdirectory(tests)
+    add_subdirectory(tests)
 endif ()
