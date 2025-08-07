@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <termios.h>
 #include <netinet/in.h>
 
 #include <zlog.h>
@@ -40,7 +41,7 @@ packet_gen_status generate_dummy_packet(const size_t pl_size, ahoi_packet_t *pac
     packet->dst = 0x58;
     packet->type = 0x01;
     // AR_FLAG doesn't work
-    packet->flags = 0x01;
+    packet->flags = 0x02;
     packet->pl_size = pl_size;
 
     if (generate_random_bytes(packet->payload, pl_size) != 0) {
@@ -92,6 +93,7 @@ void handle_rack(const ahoi_packet_t *packet, const ahoi_footer_t* footer) {
 // #endif
 
 void setup_ahoi() {
+    tcflush(g_ahoi_fd, TCIFLUSH);
     set_ahoi_id(g_ahoi_fd, SENDER_MODEM_ID);
     set_ahoi_sniff_mode(g_ahoi_fd, false);
 }
